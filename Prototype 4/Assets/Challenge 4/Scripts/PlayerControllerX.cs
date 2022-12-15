@@ -5,12 +5,15 @@ using UnityEngine;
 public class PlayerControllerX : MonoBehaviour
 {
     private Rigidbody playerRb;
-    private float speed = 500;
+    private float baseSpeed = 500;
+    private float curSpeed = 500;
+
     private GameObject focalPoint;
 
     public bool hasPowerup;
     public GameObject powerupIndicator;
     public int powerUpDuration = 5;
+    public ParticleSystem dashParticle;
 
     private float normalStrength = 10; // how hard to hit enemy without powerup
     private float powerupStrength = 25; // how hard to hit enemy with powerup
@@ -25,13 +28,24 @@ public class PlayerControllerX : MonoBehaviour
     {
         // Add force to player in direction of the focal point (and camera)
         float verticalInput = Input.GetAxis("Vertical");
-        playerRb.AddForce(focalPoint.transform.forward * verticalInput * speed * Time.deltaTime); 
+        playerRb.AddForce(focalPoint.transform.forward * verticalInput * curSpeed * Time.deltaTime); 
 
         // Set powerup indicator position to beneath player
         powerupIndicator.transform.position = transform.position + new Vector3(0, -0.6f, 0);
+        if (Input.GetKeyDown(KeyCode.Space)) {
+            curSpeed = baseSpeed * 2;
+            StartCoroutine(DashCooldown());
+            dashParticle.Play();
+        }
 
     }
 
+    IEnumerator DashCooldown()
+    {
+        yield return new WaitForSeconds(powerUpDuration);
+        curSpeed = baseSpeed;
+    }
+    
     // If Player collides with powerup, activate powerup
     private void OnTriggerEnter(Collider other)
     {
@@ -40,7 +54,7 @@ public class PlayerControllerX : MonoBehaviour
             Destroy(other.gameObject);
             hasPowerup = true;
             powerupIndicator.SetActive(true);
-            PowerupCooldown();
+            StartCoroutine(PowerupCooldown());
         }
     }
 
@@ -51,6 +65,7 @@ public class PlayerControllerX : MonoBehaviour
         hasPowerup = false;
         powerupIndicator.SetActive(false);
     }
+    
 
     // If Player collides with enemy
     private void OnCollisionEnter(Collision other)
@@ -68,8 +83,6 @@ public class PlayerControllerX : MonoBehaviour
             {
                 enemyRigidbody.AddForce(awayFromPlayer * normalStrength, ForceMode.Impulse);
             }
-
-
         }
     }
 
